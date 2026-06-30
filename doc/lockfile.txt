@@ -35,10 +35,11 @@ Supported lockfiles:
 
 - Neovim 0.10 or newer.
 - The native module (a hard dependency), implemented in Rust and loaded via
-  mlua. The build step |lockfile.download()| downloads a prebuilt binary when
-  HEAD is at a tagged release, otherwise it builds from source, which requires a
-  Rust toolchain (`cargo`). If the module is missing, commands report an error
-  with build instructions.
+  mlua. The build step |lockfile.download()| downloads a prebuilt binary that is
+  guaranteed to match the checked-out source — at a release tag, or the rolling
+  `nightly` build when your commit matches it exactly — and otherwise builds
+  from source, which requires a Rust toolchain (`cargo`). If the module is
+  missing, commands report an error with build instructions.
 
   Prebuilt binaries are published for Linux (x86_64, aarch64) and macOS
   (x86_64, aarch64); other platforms build from source.

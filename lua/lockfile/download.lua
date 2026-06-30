@@ -110,6 +110,20 @@ local function release_tag(root)
   return nil
 end
 
+--- The full commit sha at HEAD, or nil.
+---@param root string
+---@return string?
+local function head_sha(root)
+  local res = vim.system({ "git", "-C", root, "rev-parse", "HEAD" }):wait()
+  if res.code == 0 then
+    local sha = vim.trim(res.stdout or "")
+    if sha ~= "" then
+      return sha
+    end
+  end
+  return nil
+end
+
 --- Download `url` to `out` with curl. Returns ok, error message.
 ---@param url string
 ---@param out string
@@ -176,6 +190,29 @@ local function install_prebuilt(root, tag, triple)
   return true, nil
 end
 
+--- The commit sha the published `nightly` binaries were built from, fetched
+--- from the nightly release's `commit` asset, or nil if unavailable.
+---@return string?
+local function nightly_commit()
+  local url = ("https://github.com/%s/releases/download/nightly/commit"):format(REPO)
+  local tmp = vim.fn.tempname()
+  local ok = curl(url, tmp)
+  if not ok then
+    return nil
+  end
+  local fd = io.open(tmp, "r")
+  local sha
+  if fd then
+    sha = vim.trim(fd:read("*a") or "")
+    fd:close()
+  end
+  pcall(vim.uv.fs_unlink, tmp)
+  if sha and sha ~= "" then
+    return sha
+  end
+  return nil
+end
+
 --- Build the native module from source and copy it into place.
 ---@param root string?
 function M.build(root)
@@ -201,23 +238,44 @@ function M.build(root)
   vim.notify("lockfile.nvim: built native module from source.")
 end
 
---- Install the native module: prefer a prebuilt binary matching the installed
---- release tag, otherwise build from source.
+--- Install the native module. Prefers a prebuilt binary that is guaranteed to
+--- match the checked-out source:
+---   * at a release tag (v*): the matching release's binary;
+---   * otherwise: the `nightly` binary, but only when it was built from this
+---     exact commit (verified via the nightly `commit` asset).
+--- Falls back to building from source in every other case.
 function M.download_or_build()
   local root = plugin_root()
-  local tag = release_tag(root)
   local triple = target_triple()
 
-  if tag and triple then
-    local ok, err = install_prebuilt(root, tag, triple)
-    if ok then
-      vim.notify(("lockfile.nvim: installed prebuilt binary for %s (%s)."):format(triple, tag))
-      return
+  if triple then
+    local tag = release_tag(root)
+    if tag then
+      local ok, err = install_prebuilt(root, tag, triple)
+      if ok then
+        vim.notify(("lockfile.nvim: installed prebuilt binary for %s (%s)."):format(triple, tag))
+        return
+      end
+      vim.notify(
+        ("lockfile.nvim: prebuilt unavailable (%s); building from source."):format(err or "unknown"),
+        vim.log.levels.INFO
+      )
+    else
+      -- Not at a release tag: use the nightly binary only if it was built from
+      -- exactly this commit, so the binary always matches the source.
+      local head = head_sha(root)
+      if head and nightly_commit() == head then
+        local ok, err = install_prebuilt(root, "nightly", triple)
+        if ok then
+          vim.notify(("lockfile.nvim: installed nightly prebuilt for %s."):format(triple))
+          return
+        end
+        vim.notify(
+          ("lockfile.nvim: nightly prebuilt unavailable (%s); building from source."):format(err or "unknown"),
+          vim.log.levels.INFO
+        )
+      end
     end
-    vim.notify(
-      ("lockfile.nvim: prebuilt unavailable (%s); building from source."):format(err or "unknown"),
-      vim.log.levels.INFO
-    )
   end
 
   M.build(root)

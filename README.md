@@ -78,7 +78,9 @@ which commit (these are not classified as semver bumps).
   the build step compiles from source, which needs a **Rust toolchain** (`cargo`).
 
 Prebuilt binaries are published for Linux (x86_64, aarch64) and macOS (x86_64,
-aarch64). Other platforms (and untagged/branch installs) build from source.
+aarch64), both for tagged releases and as a rolling `nightly` for `main`. Other
+platforms — and any checkout that doesn't exactly match a published build —
+compile from source.
 
 ## Installation
 
@@ -97,8 +99,10 @@ falling back to compiling from source (requires `cargo`).
 }
 ```
 
-Pin to a release tag (e.g. `version = "*"` or `tag = "v1.0.0"`) to get a prebuilt
-binary; tracking a branch always builds from source.
+Prebuilt binaries are used whenever they're guaranteed to match your checked-out
+source: at a release tag (e.g. `version = "*"` / `tag = "v1.0.0"`), or — when
+tracking `main` — if your commit is exactly the one the latest `nightly` build
+was produced from. Anything else builds from source.
 
 ### packer.nvim
 
