@@ -57,11 +57,19 @@ local function target_triple()
     return arch .. "-pc-windows-msvc"
   elseif sysname:find("linux", 1, true) then
     -- Distinguish musl from glibc; the binaries are not interchangeable.
+    -- Guard the probe: `ldd` may be absent, and a missing binary makes
+    -- vim.system raise rather than return.
     local libc = "gnu"
-    local ldd = vim.system({ "ldd", "--version" }):wait()
-    local out = ((ldd.stdout or "") .. (ldd.stderr or "")):lower()
-    if out:find("musl", 1, true) then
-      libc = "musl"
+    if vim.fn.executable("ldd") == 1 then
+      local ok, ldd = pcall(function()
+        return vim.system({ "ldd", "--version" }):wait()
+      end)
+      if ok and ldd then
+        local out = ((ldd.stdout or "") .. (ldd.stderr or "")):lower()
+        if out:find("musl", 1, true) then
+          libc = "musl"
+        end
+      end
     end
     return arch .. "-unknown-linux-" .. libc
   end
