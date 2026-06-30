@@ -35,6 +35,7 @@ local M = {}
 ---@field by_name table<string, lockfile.Package[]># name -> packages (multiple versions possible)
 ---@field roots string[]                           # ids (or names) of direct project deps
 ---@field supports_graph boolean                   # whether dependency edges are meaningful
+---@field semver_versions boolean                  # whether versions are ordered semver (false for commit-SHA formats)
 local Lockfile = {}
 Lockfile.__index = Lockfile
 
@@ -58,6 +59,7 @@ function M.new(type)
     by_name = {},
     roots = {},
     supports_graph = true,
+    semver_versions = true,
   }, Lockfile)
 end
 
@@ -119,6 +121,7 @@ function M.from_native(raw)
   local lf = M.new(raw.type)
   lf.format_version = raw.format_version
   lf.supports_graph = raw.supports_graph ~= false
+  lf.semver_versions = raw.semver_versions ~= false
   for _, p in ipairs(raw.packages or {}) do
     lf:add({
       id = p.id,

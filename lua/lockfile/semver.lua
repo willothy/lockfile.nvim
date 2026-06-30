@@ -264,7 +264,9 @@ function M.compare_strings(a, b)
   return a < b and -1 or 1
 end
 
----@alias lockfile.VersionChange "major"|"minor"|"patch"|"prerelease"|"downgrade"|"none"|"other"
+--- "changed" is used by callers for formats whose versions are opaque (not
+--- semver), where a difference is detectable but not classifiable.
+---@alias lockfile.VersionChange "major"|"minor"|"patch"|"prerelease"|"downgrade"|"none"|"other"|"changed"
 
 --- Classify the change from version `old` to version `new`.
 ---

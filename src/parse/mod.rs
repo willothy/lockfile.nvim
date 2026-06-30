@@ -5,6 +5,7 @@ use crate::model::Lockfile;
 
 mod cargo;
 mod gosum;
+mod lazy;
 mod npm;
 mod pnpm;
 mod poetry;
@@ -18,6 +19,7 @@ mod yarn_classic;
 pub fn parse(kind: &str, src: &str) -> Result<Lockfile, String> {
     match kind {
         "cargo" => cargo::parse(src),
+        "lazy" => lazy::parse(src),
         "npm" => npm::parse(src),
         "pnpm" => pnpm::parse(src),
         "poetry" => poetry::parse(src),

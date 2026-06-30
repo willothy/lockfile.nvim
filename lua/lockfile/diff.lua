@@ -185,6 +185,10 @@ function M.diff(old, new)
       else
         local oh = highest(op)
         local nh = highest(np)
+        -- Formats whose "version" is an opaque identifier (e.g. lazy-lock.json
+        -- commit SHAs) are reported as "changed" rather than semver-classified.
+        local sem = new.semver_versions == false and "changed"
+          or semver.classify(oh.version, nh.version)
         change = {
           kind = "updated",
           name = name,
@@ -192,7 +196,7 @@ function M.diff(old, new)
           new_versions = nv,
           old = oh,
           new = nh,
-          semver = semver.classify(oh.version, nh.version),
+          semver = sem,
           flags = {},
         }
         report.summary.updated = report.summary.updated + 1

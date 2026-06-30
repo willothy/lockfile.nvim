@@ -62,6 +62,15 @@ return function(T)
   -- "keep" is unchanged and must not appear.
   T.ok(change_for(report, "keep") == nil, "unchanged package omitted")
 
+  -- Opaque-version formats (e.g. lazy-lock.json commit SHAs) are reported as
+  -- "changed", never semver-classified as a bump.
+  local lo = build("lazy", { { name = "p", version = "1abc" } })
+  lo.semver_versions = false
+  local ln = build("lazy", { { name = "p", version = "9def" } })
+  ln.semver_versions = false
+  local lazy_report = diff.diff(lo, ln)
+  T.eq(change_for(lazy_report, "p").semver, "changed", "opaque version change not classified")
+
   -- Multiple versions of one name: descending order.
   local mv_old = build("npm", { { name = "x", version = "1.0.0" } })
   local mv_new = build("npm", {

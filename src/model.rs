@@ -86,6 +86,10 @@ pub struct Lockfile {
     /// Whether dependency edges are meaningful for this format (false for
     /// go.sum, which records no graph).
     pub supports_graph: bool,
+    /// Whether `version` strings are ordered semantic versions (true) or opaque
+    /// identifiers like git commit SHAs (false, e.g. lazy-lock.json). When
+    /// false, version changes are not classified as major/minor/etc.
+    pub semver_versions: bool,
     pub packages: Vec<Package>,
     /// Ids (or names) of direct/root dependencies.
     pub roots: Vec<String>,
@@ -98,6 +102,7 @@ impl Lockfile {
             kind: kind.into(),
             format_version: None,
             supports_graph: true,
+            semver_versions: true,
             packages: Vec::new(),
             roots: Vec::new(),
         }

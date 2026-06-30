@@ -28,6 +28,7 @@ Supported lockfiles:
     poetry.lock         (Poetry)
     uv.lock             (uv)
     go.sum              (Go; no dependency graph)
+    lazy-lock.json      (lazy.nvim; no dependency graph, commit-pinned)
 
 ==============================================================================
 2. REQUIREMENTS                                      *lockfile-requirements*

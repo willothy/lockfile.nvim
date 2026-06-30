@@ -58,10 +58,12 @@ Cargo.lock   HEAD → working tree
 | `poetry.lock`        | Poetry    | yes              |
 | `uv.lock`            | uv        | yes              |
 | `go.sum`             | Go        | no¹              |
+| `lazy-lock.json`     | lazy.nvim | no¹              |
 
-¹ `go.sum` records checksums only; the dependency graph lives in `go.mod`, so
-transitive reasons are unavailable for it (checksum-tamper detection still
-works).
+¹ `go.sum` and `lazy-lock.json` record no dependency graph, so transitive
+reasons are unavailable for them. For `lazy-lock.json` the pinned commit is
+treated as the package "version", so a diff shows which plugins moved and to
+which commit (these are not classified as semver bumps).
 
 ## Requirements
 

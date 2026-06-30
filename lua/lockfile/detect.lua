@@ -14,6 +14,7 @@ local BY_BASENAME = {
   ["poetry.lock"] = "poetry",
   ["uv.lock"] = "uv",
   ["go.sum"] = "go",
+  ["lazy-lock.json"] = "lazy",
 }
 
 --- Extract the basename (final path segment) of a path, handling both POSIX
@@ -70,6 +71,7 @@ function M.label(type)
     poetry = "poetry.lock",
     uv = "uv.lock",
     go = "go.sum",
+    lazy = "lazy-lock.json",
   }
   return labels[type] or type
 end
