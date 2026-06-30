@@ -141,7 +141,8 @@ fn add_roots(lf: &mut Lockfile, maps: &[&HashMap<String, DepRef>]) {
 }
 
 pub fn parse(src: &str) -> Result<Lockfile, String> {
-    let doc: PnpmLock = serde_yaml_ng::from_str(src).map_err(|e| format!("invalid pnpm-lock.yaml: {e}"))?;
+    let doc: PnpmLock =
+        serde_yaml_ng::from_str(src).map_err(|e| format!("invalid pnpm-lock.yaml: {e}"))?;
 
     let mut lf = Lockfile::new("pnpm");
     lf.format_version = doc.lockfile_version.as_ref().map(version_string);
@@ -243,7 +244,10 @@ snapshots:
 
     #[test]
     fn key_parsing_handles_all_layouts() {
-        assert_eq!(parse_key("lodash@4.17.21"), ("lodash".into(), "4.17.21".into()));
+        assert_eq!(
+            parse_key("lodash@4.17.21"),
+            ("lodash".into(), "4.17.21".into())
+        );
         assert_eq!(
             parse_key("/@scope/pkg@1.0.0(react@18.0.0)"),
             ("@scope/pkg".into(), "1.0.0".into())
@@ -252,6 +256,9 @@ snapshots:
             parse_key("/@scope/pkg/1.0.0"),
             ("@scope/pkg".into(), "1.0.0".into())
         );
-        assert_eq!(parse_key("/lodash/4.17.21"), ("lodash".into(), "4.17.21".into()));
+        assert_eq!(
+            parse_key("/lodash/4.17.21"),
+            ("lodash".into(), "4.17.21".into())
+        );
     }
 }

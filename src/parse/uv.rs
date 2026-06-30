@@ -91,7 +91,11 @@ pub fn parse(src: &str) -> Result<Lockfile, String> {
     for p in &doc.package {
         let mut pkg = Package::new(&p.name, &p.version);
 
-        let mut deps: Vec<Dep> = p.dependencies.iter().map(|d| Dep::by_name(&d.name)).collect();
+        let mut deps: Vec<Dep> = p
+            .dependencies
+            .iter()
+            .map(|d| Dep::by_name(&d.name))
+            .collect();
         for extra in p.optional_dependencies.values() {
             deps.extend(extra.iter().map(|d| Dep::by_name(&d.name)));
         }

@@ -108,7 +108,9 @@ fn build_v3(lf: &mut Lockfile, packages: HashMap<String, NpmPkg>) {
         pkg.dev = entry.dev;
         pkg.optional = entry.optional;
 
-        by_name.entry(name.clone()).or_insert_with(|| pkg.id.clone());
+        by_name
+            .entry(name.clone())
+            .or_insert_with(|| pkg.id.clone());
 
         // Workspace packages (path without node_modules) are roots.
         if name_from_path(path).is_none() && !entry.link {
@@ -141,7 +143,8 @@ fn build_v1(lf: &mut Lockfile, deps: HashMap<String, NpmV1Dep>, roots: bool) {
 }
 
 pub fn parse(src: &str) -> Result<Lockfile, String> {
-    let doc: NpmLock = serde_json::from_str(src).map_err(|e| format!("invalid package-lock.json: {e}"))?;
+    let doc: NpmLock =
+        serde_json::from_str(src).map_err(|e| format!("invalid package-lock.json: {e}"))?;
 
     let mut lf = Lockfile::new("npm");
     lf.format_version = doc.lockfile_version.as_ref().map(version_string);

@@ -39,7 +39,9 @@ fn lockfile_native(lua: &Lua) -> LuaResult<LuaTable> {
     )?;
     exports.set(
         "git_relpath",
-        lua.create_function(|_, (root, abspath): (String, String)| Ok(git::relpath(&root, &abspath)))?,
+        lua.create_function(|_, (root, abspath): (String, String)| {
+            Ok(git::relpath(&root, &abspath))
+        })?,
     )?;
 
     Ok(exports)
