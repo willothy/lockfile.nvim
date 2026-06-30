@@ -1,0 +1,145 @@
+*lockfile.txt*                                     Make lockfile diffs understandable
+
+==============================================================================
+CONTENTS                                                    *lockfile.nvim*
+
+    1. Introduction ............................. |lockfile-intro|
+    2. Requirements ............................. |lockfile-requirements|
+    3. Usage .................................... |lockfile-usage|
+    4. Commands ................................. |lockfile-commands|
+    5. Mappings ................................. |lockfile-mappings|
+    6. Configuration ............................ |lockfile-config|
+    7. Suspicious changes ....................... |lockfile-suspicious|
+    8. Lua API .................................. |lockfile-api|
+
+==============================================================================
+1. INTRODUCTION                                             *lockfile-intro*
+
+lockfile.nvim parses both sides of a lockfile change and shows what actually
+matters: packages added, removed, and updated; the reason a transitive
+dependency is present; version-change severity; and suspicious changes such as
+a checksum that changed without the version changing.
+
+Supported lockfiles:
+    Cargo.lock          (Rust)
+    pnpm-lock.yaml      (pnpm)
+    package-lock.json   (npm)
+    yarn.lock           (Yarn Classic and Berry)
+    poetry.lock         (Poetry)
+    uv.lock             (uv)
+    go.sum              (Go; no dependency graph)
+
+==============================================================================
+2. REQUIREMENTS                                      *lockfile-requirements*
+
+- Neovim 0.10 or newer.
+- A Rust toolchain (`cargo`). All parsing and git access is implemented in a
+  Rust native module loaded via mlua; it must be compiled with `make` (or
+  `cargo build --release`) before use. It is a hard dependency: if it is not
+  built, commands report an error with build instructions.
+
+==============================================================================
+3. USAGE                                                    *lockfile-usage*
+
+Open a lockfile, or run from anywhere inside a git repository, then: >
+    :LockfileDiff
+<
+This compares the configured base revision (HEAD by default) against the
+working tree. If the current buffer is not a lockfile you are prompted to
+choose one of the repository's tracked lockfiles.
+
+The view groups changes with suspicious ones first, then updated, added, and
+removed. Each entry can be folded; see |lockfile-mappings|.
+
+==============================================================================
+4. COMMANDS                                              *lockfile-commands*
+
+                                                              *:LockfileDiff*
+:LockfileDiff [{old}] [{new}]
+        Diff a lockfile and open the viewer.
+        - no arguments: {old} = base revision (HEAD), {new} = working tree.
+        - one argument: {old} revision vs the working tree.
+        - two arguments: between revisions {old} and {new}.
+        {old} and {new} are any git revision (commit, tag, branch).
+
+==============================================================================
+5. MAPPINGS                                              *lockfile-mappings*
+
+Buffer-local, inside the diff view:
+
+    q, <Esc>        Close the view.
+    <Tab>, <CR>     Toggle the fold under the cursor.
+    zR              Open all folds.
+    zM              Collapse to section headers.
+    R               Refresh (recompute the diff).
+
+==============================================================================
+6. CONFIGURATION                                           *lockfile-config*
+
+Call |lockfile.setup()| with a table to override defaults: >
+
+    require("lockfile").setup({
+      window = {
+        style = "float",   -- "float" | "split"
+        width = 0.8,       -- fraction of &columns, or an absolute count
+        height = 0.8,
+        border = "rounded",
+      },
+      default_diff_base = "HEAD",
+      analysis = {
+        flag_major = true,
+        flag_downgrade = true,
+        flag_source_change = true,
+        flag_checksum_change = true,
+        flag_new_git_source = true,
+        big_transitive_threshold = 10,
+      },
+      icons = {
+        added = "+", removed = "-", updated = "~", suspicious = "⚠",
+        collapsed = "▸", expanded = "▾",
+      },
+      highlights = {
+        LockfileAdded = "DiffAdd",
+        LockfileRemoved = "DiffDelete",
+        LockfileUpdated = "DiffChange",
+        LockfileSuspicious = "DiagnosticError",
+        -- ... see lua/lockfile/config.lua for the full set
+      },
+    })
+<
+Each plugin highlight group is linked (with `default = true`) to its target,
+so a colorscheme that defines the plugin groups directly takes precedence.
+
+==============================================================================
+7. SUSPICIOUS CHANGES                                  *lockfile-suspicious*
+
+The following are flagged. High-severity flags sort to the top of the view.
+
+    checksum (high)         A package's checksum changed but its version did
+                            not — the classic supply-chain tamper signal.
+    source_change (high)    A package's source origin changed category, e.g.
+                            from a registry to a git source.
+    major (warn)            A major version bump.
+    downgrade (warn)        The version decreased.
+    new_source (warn)       A newly added package comes from a git or
+                            arbitrary URL source rather than a registry.
+    big_transitive (warn)   A single added dependency pulls in at least
+                            `analysis.big_transitive_threshold` new packages.
+
+==============================================================================
+8. LUA API                                                    *lockfile-api*
+
+lockfile.setup({opts})                                   *lockfile.setup()*
+        Apply configuration (see |lockfile-config|) and define highlights.
+
+lockfile.diff({opts})                                     *lockfile.diff()*
+        Open a diff. {opts} keys:
+            path   Lockfile path (default: current buffer, else prompt).
+            old    Base revision (default: |lockfile-config| base).
+            new    New revision (default: working tree).
+
+lockfile.build_report({path}, {opts})            *lockfile.build_report()*
+        Build an analyzed report without opening a window. Returns
+        `report, labels` or `nil, nil, err`. Useful for custom UIs.
+
+vim:tw=78:ts=8:ft=help:norl:
