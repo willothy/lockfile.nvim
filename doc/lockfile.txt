@@ -34,10 +34,14 @@ Supported lockfiles:
 2. REQUIREMENTS                                      *lockfile-requirements*
 
 - Neovim 0.10 or newer.
-- A Rust toolchain (`cargo`). All parsing and git access is implemented in a
-  Rust native module loaded via mlua; it must be compiled with `make` (or
-  `cargo build --release`) before use. It is a hard dependency: if it is not
-  built, commands report an error with build instructions.
+- The native module (a hard dependency), implemented in Rust and loaded via
+  mlua. The build step |lockfile.download()| downloads a prebuilt binary when
+  HEAD is at a tagged release, otherwise it builds from source, which requires a
+  Rust toolchain (`cargo`). If the module is missing, commands report an error
+  with build instructions.
+
+  Prebuilt binaries are published for Linux (x86_64, aarch64) and macOS
+  (x86_64, aarch64); other platforms build from source.
 
 ==============================================================================
 3. USAGE                                                    *lockfile-usage*
@@ -142,5 +146,10 @@ lockfile.diff({opts})                                     *lockfile.diff()*
 lockfile.build_report({path}, {opts})            *lockfile.build_report()*
         Build an analyzed report without opening a window. Returns
         `report, labels` or `nil, nil, err`. Useful for custom UIs.
+
+require("lockfile.download").download_or_build()    *lockfile.download()*
+        Install the native module: download a prebuilt binary matching the
+        installed release tag, or build from source. Intended for a plugin
+        manager's build step.
 
 vim:tw=78:ts=8:ft=help:norl:

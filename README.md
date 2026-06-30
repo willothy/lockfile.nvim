@@ -68,37 +68,52 @@ which commit (these are not classified as semver bumps).
 ## Requirements
 
 - Neovim 0.10+ (uses `vim.system`, `vim.fs`, extmark highlights).
-- A **Rust toolchain** (`cargo`) to build the native module. All parsing and git
-  access is implemented in Rust (via [`mlua`](https://github.com/mlua-rs/mlua),
-  [`nom`](https://github.com/rust-bakery/nom), and
-  [`git2`](https://github.com/rust-lang/git2-rs)); the compiled module is a hard
-  dependency.
+- The native module (a hard dependency). All parsing, version comparison, and
+  git access are implemented in Rust (via [`mlua`](https://github.com/mlua-rs/mlua),
+  [`nom`](https://github.com/rust-bakery/nom),
+  [`git2`](https://github.com/rust-lang/git2-rs),
+  [`semver`](https://github.com/dtolnay/semver), and
+  [`pep440_rs`](https://github.com/konstin/pep440-rs)). When you install a
+  **tagged release**, a prebuilt binary is downloaded for your platform; otherwise
+  the build step compiles from source, which needs a **Rust toolchain** (`cargo`).
+
+Prebuilt binaries are published for Linux (x86_64, aarch64) and macOS (x86_64,
+aarch64). Other platforms (and untagged/branch installs) build from source.
 
 ## Installation
 
-The plugin ships Rust source that must be compiled into a native module. Run
-`make` in the plugin directory after install.
+The build step downloads a prebuilt native module for the installed release tag,
+falling back to compiling from source (requires `cargo`).
 
 ### lazy.nvim
 
 ```lua
 {
-  "yourname/lockfile.nvim",
-  build = "make",
+  "willothy/lockfile.nvim",
+  build = function()
+    require("lockfile.download").download_or_build()
+  end,
   opts = {},
 }
 ```
 
+Pin to a release tag (e.g. `version = "*"` or `tag = "v1.0.0"`) to get a prebuilt
+binary; tracking a branch always builds from source.
+
 ### packer.nvim
 
 ```lua
-use({ "yourname/lockfile.nvim", run = "make", config = function() require("lockfile").setup() end })
+use({
+  "willothy/lockfile.nvim",
+  run = function() require("lockfile.download").download_or_build() end,
+  config = function() require("lockfile").setup() end,
+})
 ```
 
 ### Manual
 
 ```sh
-git clone https://github.com/yourname/lockfile.nvim
+git clone https://github.com/willothy/lockfile.nvim
 cd lockfile.nvim
 make            # builds lua/lockfile_native.so via cargo
 ```
