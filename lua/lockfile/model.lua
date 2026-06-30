@@ -110,22 +110,31 @@ function Lockfile:add_root(id)
   table.insert(self.roots, id)
 end
 
---- Resolve a dependency edge to a concrete package. Prefers an exact id match
---- (name@version) and falls back to the first package with a matching name.
----@param dep lockfile.Dep
----@return lockfile.Package?
-function Lockfile:resolve(dep)
-  if dep.version then
-    local exact = self.by_id[M.make_id(dep.name, dep.version)]
-    if exact then
-      return exact
-    end
+--- Build an indexed lockfile from the raw table produced by the native module.
+--- The native side performs all parsing; this only constructs the id/name
+--- indexes used by diffing and analysis.
+---@param raw table  # { type, format_version?, supports_graph, packages, roots }
+---@return lockfile.Lockfile
+function M.from_native(raw)
+  local lf = M.new(raw.type)
+  lf.format_version = raw.format_version
+  lf.supports_graph = raw.supports_graph ~= false
+  for _, p in ipairs(raw.packages or {}) do
+    lf:add({
+      id = p.id,
+      name = p.name,
+      version = p.version,
+      source = p.source,
+      checksum = p.checksum,
+      deps = p.deps or {},
+      optional = p.optional,
+      dev = p.dev,
+    })
   end
-  local list = self.by_name[dep.name]
-  if list and list[1] then
-    return list[1]
+  for _, id in ipairs(raw.roots or {}) do
+    lf:add_root(id)
   end
-  return nil
+  return lf
 end
 
 M.Lockfile = Lockfile
