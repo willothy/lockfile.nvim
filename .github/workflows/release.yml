@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    # The Windows mlua module link is best-effort; a failure here must not block
+    # publishing the other platforms' binaries (Windows users build from source).
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            builder: zigbuild
+            ext: so
+            built: liblockfile_native.so
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            builder: zigbuild
+            ext: so
+            built: liblockfile_native.so
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            builder: cargo
+            ext: so
+            built: liblockfile_native.dylib
+            codesign: true
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            builder: cargo
+            ext: so
+            built: liblockfile_native.dylib
+            codesign: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            builder: cargo
+            ext: dll
+            built: lockfile_native.dll
+            experimental: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install zig
+        if: matrix.builder == 'zigbuild'
+        uses: mlugg/setup-zig@v1
+      - name: Install cargo-zigbuild
+        if: matrix.builder == 'zigbuild'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
+      - name: Build (zigbuild)
+        if: matrix.builder == 'zigbuild'
+        run: cargo zigbuild --release --target ${{ matrix.target }}
+      - name: Build (cargo)
+        if: matrix.builder == 'cargo'
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Ad-hoc sign so macOS does not block the downloaded dylib.
+      - name: Codesign (macOS)
+        if: matrix.codesign
+        run: codesign --force --sign - "target/${{ matrix.target }}/release/${{ matrix.built }}"
+
+      - name: Package asset
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/${{ matrix.built }}" \
+             "dist/lockfile_native-${{ matrix.target }}.${{ matrix.ext }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lockfile_native-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Collect binaries and checksums
+        run: |
+          mkdir -p dist
+          find artifacts -type f -name 'lockfile_native-*' -exec cp {} dist/ \;
+          (cd dist && sha256sum * > SHA256SUMS)
+          ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          fail_on_unmatched_files: false
+          generate_release_notes: true
