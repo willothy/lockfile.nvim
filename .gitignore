@@ -1,0 +1,7 @@
+# Rust build artifacts
+/target
+
+# Compiled native module (built from src/ via `make` / `cargo build`)
+/lua/lockfile_native.so
+/lua/lockfile_native.dll
+/lua/liblockfile_native.dylib

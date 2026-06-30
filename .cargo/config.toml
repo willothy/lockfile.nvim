@@ -1,0 +1,9 @@
+# Lua C modules do not link against the Lua library directly: the host process
+# (Neovim's embedded LuaJIT) provides the `lua_*` symbols, which are resolved at
+# module-load time. On macOS the linker must be told to allow these undefined
+# symbols; on Linux this is the default behaviour for shared objects.
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
