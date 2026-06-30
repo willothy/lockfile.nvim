@@ -2,6 +2,7 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
@@ -94,17 +95,44 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Collect binaries and checksums
+      - name: Assemble dist
+        shell: bash
         run: |
           mkdir -p dist
           find artifacts -type f -name 'lockfile_native-*' -exec cp {} dist/ \;
+          # For nightly builds, record the exact commit so the download step can
+          # verify a prebuilt matches the user's checked-out source before using it.
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "${{ github.sha }}" > dist/commit
+          fi
           (cd dist && sha256sum * > SHA256SUMS)
           ls -la dist
-      - uses: softprops/action-gh-release@v2
+
+      # Tagged release (v*): publish a normal release for that tag.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           fail_on_unmatched_files: false
           generate_release_notes: true
+
+      # main: move the `nightly` tag to this commit and refresh its prerelease.
+      - name: Move nightly tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag -f nightly "${{ github.sha }}"
+          git push -f origin "refs/tags/nightly"
+      - name: Publish nightly
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: nightly
+          prerelease: true
+          files: dist/*
+          fail_on_unmatched_files: false
