@@ -35,8 +35,8 @@ Cargo.lock   HEAD → working tree
 
 - **Added / removed / updated packages**, grouped and de-noised.
 - **Version-change classification** — major / minor / patch / prerelease /
-  downgrade, computed with a tolerant version parser (semver, Go `v` prefixes,
-  PEP 440).
+  downgrade, computed per ecosystem with the `semver` crate (Cargo/npm/pnpm/
+  yarn/Go) and `pep440_rs` (poetry/uv).
 - **Transitive dependency reasons** — *why* is a package here? Each change shows
   the shortest path from a project root (`myapp → evilcrate → sub1`).
 - **Suspicious change detection**:
@@ -182,10 +182,12 @@ git ───────▶│ libgit2 (read a lockfile at any revision)       
         Lua: model indexing ──▶ diff (per package name) ──▶ analyze (graph, reasons, suspicious) ──▶ render ──▶ float/split
 ```
 
-Parsing and git access live in a Rust crate loaded through `mlua`; structured
-formats use `serde` (`toml`, `serde_yaml_ng`, `serde_json`) and the two bespoke
-formats (Yarn Classic, `go.sum`) use `nom` parser combinators. The Lua side
-handles diffing, dependency-graph analysis, and presentation.
+Parsing, version comparison, and git access live in a Rust crate loaded through
+`mlua`. Structured formats use `serde` (`toml`, `serde_yaml_ng`, `serde_json`),
+the two bespoke formats (Yarn Classic, `go.sum`) use `nom` parser combinators,
+and version classification uses the `semver` and `pep440_rs` crates dispatched
+by ecosystem. The Lua side handles diffing, dependency-graph analysis, and
+presentation.
 
 ## Development
 

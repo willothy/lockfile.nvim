@@ -5,7 +5,7 @@
 --- the full set of old and new versions plus a representative package on each
 --- side for detailed display.
 
-local semver = require("lockfile.semver")
+local version = require("lockfile.version")
 
 local M = {}
 
@@ -36,25 +36,27 @@ local M = {}
 
 --- Sorted (descending) list of versions present in a package list.
 ---@param pkgs lockfile.Package[]
+---@param kind string  # lockfile format id, for the versioning scheme
 ---@return string[]
-local function versions_of(pkgs)
+local function versions_of(pkgs, kind)
   local vs = {}
   for _, p in ipairs(pkgs) do
     vs[#vs + 1] = p.version
   end
   table.sort(vs, function(a, b)
-    return semver.compare_strings(a, b) > 0
+    return version.compare(kind, a, b) > 0
   end)
   return vs
 end
 
 --- The package with the highest version in a list.
 ---@param pkgs lockfile.Package[]
+---@param kind string
 ---@return lockfile.Package
-local function highest(pkgs)
+local function highest(pkgs, kind)
   local best = pkgs[1]
   for i = 2, #pkgs do
-    if semver.compare_strings(pkgs[i].version, best.version) > 0 then
+    if version.compare(kind, pkgs[i].version, best.version) > 0 then
       best = pkgs[i]
     end
   end
@@ -122,6 +124,7 @@ function M.diff(old, new)
     changes = {},
     summary = { added = 0, removed = 0, updated = 0, suspicious = 0 },
   }
+  local kind = report.type
 
   -- Union of all package names.
   local names = {}
@@ -148,8 +151,8 @@ function M.diff(old, new)
         kind = "added",
         name = name,
         old_versions = {},
-        new_versions = versions_of(np),
-        new = highest(np),
+        new_versions = versions_of(np, kind),
+        new = highest(np, kind),
         flags = {},
       }
       report.summary.added = report.summary.added + 1
@@ -157,15 +160,15 @@ function M.diff(old, new)
       change = {
         kind = "removed",
         name = name,
-        old_versions = versions_of(op),
+        old_versions = versions_of(op, kind),
         new_versions = {},
-        old = highest(op),
+        old = highest(op, kind),
         flags = {},
       }
       report.summary.removed = report.summary.removed + 1
     else
-      local ov = versions_of(op)
-      local nv = versions_of(np)
+      local ov = versions_of(op, kind)
+      local nv = versions_of(np, kind)
       if same_versions(ov, nv) then
         -- Same versions: only a change if a checksum was tampered with.
         local oc, nc = checksum_conflict(op, np)
@@ -183,12 +186,12 @@ function M.diff(old, new)
           report.summary.updated = report.summary.updated + 1
         end
       else
-        local oh = highest(op)
-        local nh = highest(np)
+        local oh = highest(op, kind)
+        local nh = highest(np, kind)
         -- Formats whose "version" is an opaque identifier (e.g. lazy-lock.json
         -- commit SHAs) are reported as "changed" rather than semver-classified.
         local sem = new.semver_versions == false and "changed"
-          or semver.classify(oh.version, nh.version)
+          or version.classify(kind, oh.version, nh.version)
         change = {
           kind = "updated",
           name = name,

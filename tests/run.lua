@@ -38,7 +38,7 @@ function T.ok(cond, msg)
 end
 
 local specs = {
-  "semver_spec",
+  "version_spec",
   "diff_spec",
   "analyze_spec",
   "render_spec",

@@ -3,6 +3,7 @@ use mlua::prelude::*;
 mod git;
 mod model;
 mod parse;
+mod version;
 
 /// Parse a lockfile of the given format `kind` and return the normalized model
 /// as a Lua table. Raises a Lua error with a human-readable message on failure.
@@ -16,6 +17,19 @@ fn lockfile_native(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
 
     exports.set("parse", lua.create_function(parse_lockfile)?)?;
+
+    exports.set(
+        "version_classify",
+        lua.create_function(|_, (kind, old, new): (String, String, String)| {
+            Ok(version::classify(&kind, &old, &new))
+        })?,
+    )?;
+    exports.set(
+        "version_compare",
+        lua.create_function(|_, (kind, a, b): (String, String, String)| {
+            Ok(version::compare(&kind, &a, &b))
+        })?,
+    )?;
 
     exports.set(
         "git_root",
