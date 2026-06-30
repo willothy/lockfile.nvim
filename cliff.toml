@@ -1,0 +1,57 @@
+# git-cliff configuration — generates CHANGELOG.md and release notes from the
+# project's conventional-commit history.
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project are documented here.\n
+"""
+# https://keats.github.io/tera/docs/#introduction
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}]{% if release_link %}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {{ commit.message | split(pat="\n") | first | upper_first | trim }}\
+            {% if commit.remote.username %} (by @{{ commit.remote.username }}){% endif %}\
+    {% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+# Tidy up messages before rendering.
+commit_preprocessors = [
+  # collapse multiple spaces
+  { pattern = '  +', replace = " " },
+]
+# Map commit types to changelog sections. Ordered; first match wins.
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Features" },
+  { message = "^fix", group = "<!-- 1 -->Bug Fixes" },
+  { message = "^perf", group = "<!-- 2 -->Performance" },
+  { message = "^refactor", group = "<!-- 3 -->Refactor" },
+  { message = "^docs", group = "<!-- 4 -->Documentation" },
+  { message = "^test", group = "<!-- 5 -->Testing" },
+  { message = "^ci", group = "<!-- 6 -->CI" },
+  { message = "^build", group = "<!-- 7 -->Build" },
+  { message = "^style", group = "<!-- 8 -->Styling" },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore|^refactor\\(deps\\)", group = "<!-- 9 -->Miscellaneous" },
+  { message = ".*", group = "<!-- 9 -->Miscellaneous" },
+]
+protect_breaking_commits = true
+filter_commits = false
+tag_pattern = "v[0-9]*"
+topo_order = false
+sort_commits = "oldest"
