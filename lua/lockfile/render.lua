@@ -120,25 +120,27 @@ local function detail_lines(out, change, report)
     out[#out + 1] = l
   end
 
-  -- Transitive reason ("why is this here").
-  local l = line("3")
-  l:put("      ", nil)
-  if change.reason_path and #change.reason_path > 0 then
-    if #change.reason_path == 1 then
-      l:put("direct dependency", "LockfileReason")
+  -- Transitive reason ("why is this here"). Suppressed for formats that record
+  -- no dependency graph (e.g. go.sum), where every package would otherwise look
+  -- like a direct dependency.
+  if report.new.supports_graph then
+    local l = line("3")
+    l:put("      ", nil)
+    if change.reason_path and #change.reason_path > 0 then
+      if #change.reason_path == 1 then
+        l:put("direct dependency", "LockfileReason")
+      else
+        l:put("why: ", "LockfileReason")
+        l:put(table.concat(change.reason_path, " → "), "LockfileReason")
+      end
+    elseif change.dependents and #change.dependents > 0 then
+      l:put("required by: ", "LockfileReason")
+      l:put(truncate(table.concat(change.dependents, ", "), 80), "LockfileReason")
     else
-      l:put("why: ", "LockfileReason")
-      l:put(table.concat(change.reason_path, " → "), "LockfileReason")
+      l:put("direct dependency", "LockfileReason")
     end
-  elseif not report.new.supports_graph then
-    l:put("(no dependency graph in this format)", "LockfileMuted")
-  elseif change.dependents and #change.dependents > 0 then
-    l:put("required by: ", "LockfileReason")
-    l:put(truncate(table.concat(change.dependents, ", "), 80), "LockfileReason")
-  else
-    l:put("direct dependency", "LockfileReason")
+    out[#out + 1] = l
   end
-  out[#out + 1] = l
 
   -- Source, shown for added packages and origin changes.
   local pkg = change.new or change.old
